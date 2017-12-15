@@ -11,6 +11,12 @@ from retrying import retry
 print_lock = threading.Lock()
 url_list = []
 errors = []
+host = "192.168.1.101"
+port = "15432"
+dbname = "cadastre"
+table = "parcelles"
+user = "france"
+password = "france"
 
 
 def list_dept(cadastre_url, ext=""):
@@ -51,18 +57,15 @@ def download_file(file_url, file_name, first):
 
 
 def json_to_postgis(file_location, first, file_name):
+    bash = 'ogr2ogr -f "PostgreSQL" --config PG_USE_COPY YES PG:"host=' + host + 'port=' + port + \
+           'dbname=' + dbname + ' user=' + user + ' password=' + password + '" "/vsigzip/' + file_location + \
+           '" -sql "SELECT SUBSTR(id, 1, 5) AS commune, SUBSTR(id, 6, 3) AS feuille, SUBSTR(id, 9, 2) AS section' \
+           ', numero, contenance, created, updated from OGRGeoJSON" -nln ' + table
     if first:
-        bash = 'ogr2ogr -f "PostgreSQL" --config PG_USE_COPY YES PG:"host=192.168.1.101 port=15432 dbname=cadastre ' \
-               'user=france password=france" "/vsigzip/' + file_location + \
-               '" -sql "SELECT SUBSTR(id, 1, 5) AS commune, SUBSTR(id, 6, 3) AS feuille, SUBSTR(id, 9, 2) AS section' \
-               ', numero, contenance, created, updated from OGRGeoJSON"' \
-               ' -nln parcelles -nlt GEOMETRY -gt 25000'
+        bash = bash + ' -nlt GEOMETRY -gt 25000'
     else:
-        bash = 'ogr2ogr -f "PostgreSQL" --config PG_USE_COPY YES PG:"host=192.168.1.101 port=15432 dbname=cadastre ' \
-               'user=france password=france" "/vsigzip/' + file_location + \
-               '" -sql "SELECT SUBSTR(id, 1, 5) AS commune, SUBSTR(id, 6, 3) AS feuille, SUBSTR(id, 9, 2) AS section' \
-               ', numero, contenance, created, updated from OGRGeoJSON"' \
-               ' -nln parcelles -append -gt 25000'
+        bash = bash + ' -append -gt 25000'
+
     proc = subprocess.run(bash, shell=True, timeout=120, check=True)
     if proc.returncode != 0:
         errors.append(file_location.replace("./Input/", ""))
