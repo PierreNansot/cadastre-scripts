@@ -15,7 +15,7 @@ data_url = "https://cadastre.data.gouv.fr/data/etalab-cadastre/latest/geojson/co
 host = "192.168.1.101"
 port = "15432"
 dbname = "cadastre"
-table = "parcelles"
+table = "batiments"
 user = "france"
 password = "france"
 
@@ -42,7 +42,7 @@ def list_comm(comm_url, ext=""):
 
 def list_files(files_url, comm_name, first):
     comm_name = comm_name.replace("/", "")
-    file_name = 'cadastre-' + comm_name + "-parcelles.json.gz"
+    file_name = 'cadastre-' + comm_name + "-batiments.json.gz"
     url_list.append([files_url + file_name, file_name, first])
 
 
@@ -60,8 +60,7 @@ def download_file(file_url, file_name, first):
 def json_to_postgis(file_location, first, file_name):
     bash = 'ogr2ogr -f "PostgreSQL" --config PG_USE_COPY YES PG:"host=' + host + ' port=' + port + \
            ' dbname=' + dbname + ' user=' + user + ' password=' + password + '" "/vsigzip/' + file_location + \
-           '" -sql "SELECT SUBSTR(id, 1, 5) AS commune, SUBSTR(id, 6, 3) AS feuille, SUBSTR(id, 9, 2) AS section' \
-           ', numero, contenance, created, updated from OGRGeoJSON" -nln ' + table
+           '" -sql "SELECT type, nom, created, updated from OGRGeoJSON" -nln ' + table
     if first:
         bash = bash + ' -nlt GEOMETRY -gt 25000'
     else:
@@ -102,7 +101,7 @@ for idx, current_url in enumerate(url_list):
 url_queue.join()
 
 if errors:
-    f = open("./Error/cadastre_parcelles.txt", "w")
+    f = open("./error/cadastre_batiment.txt", "w")
     for error in errors:
         f.write(error + '\n')
     del f
